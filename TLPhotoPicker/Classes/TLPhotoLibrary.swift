@@ -208,13 +208,42 @@ extension TLPhotoLibrary {
                                                                           subtype: subType,
                                                                           options: collectionOption)
             self.assetCollections.append(fetchCollection)
+            var locaIdentifiers = [String]()
             if
                 let collection = fetchCollection.firstObject,
                 result.contains(where: { $0.localIdentifier == collection.localIdentifier }) == false
             {
+                var photoAssets = PHAsset.fetchAssets(in: collection, options: options)
+                
+                photoAssets.enumerateObjects{(object: AnyObject!,
+                    count: Int,
+                    stop: UnsafeMutablePointer<ObjCBool>) in
+
+                    if object is PHAsset{
+                        let asset = object as! PHAsset
+                        if asset.burstIdentifier != nil {
+
+                            var fetchBurstResult = PHAsset.fetchAssets(withBurstIdentifier: asset.burstIdentifier!, options: options)
+                            
+                            fetchBurstResult.enumerateObjects{(object1: AnyObject!,
+                                count1: Int,
+                                stop1: UnsafeMutablePointer<ObjCBool>) in
+
+                                if object1 is PHAsset{
+                                    let asset1 = object1 as! PHAsset
+                                    locaIdentifiers.append(asset1.localIdentifier)
+                                }
+                            }
+                        } else {
+                            locaIdentifiers.append(asset.localIdentifier)
+                        }
+                    }
+                }
+                
                 var assetsCollection = TLAssetsCollection(collection: collection)
                 assetsCollection.title = configure.customLocalizedTitle[assetsCollection.title] ?? assetsCollection.title
-                assetsCollection.fetchResult = PHAsset.fetchAssets(in: collection, options: options)
+                assetsCollection.fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: locaIdentifiers, options: options)
+
                 if assetsCollection.count > 0 || useCameraButton {
                     result.append(assetsCollection)
                     return assetsCollection
