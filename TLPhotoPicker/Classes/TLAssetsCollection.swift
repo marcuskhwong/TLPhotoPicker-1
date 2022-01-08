@@ -49,12 +49,13 @@ public struct TLPHAsset {
         }
     }
     
-    public func extType() -> ImageExtType {
-        var ext = ImageExtType.png
-        if let fileName = self.originalFileName, let extention = URL(string: fileName)?.pathExtension.lowercased() {
-            ext = ImageExtType(rawValue: extention) ?? .png
-        }
-        return ext
+    public func extType(defaultExt: ImageExtType = .png) -> ImageExtType {
+        guard let fileName = self.originalFileName,
+              let encodedFileName = fileName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let extention = URL(string: encodedFileName)?.pathExtension.lowercased() else {
+                  return defaultExt
+              }
+        return ImageExtType(rawValue: extention) ?? defaultExt
     }
     
     @discardableResult
@@ -155,7 +156,6 @@ public struct TLPHAsset {
         { (livePhotos, infoDict) in
             if let livePhotos = livePhotos {
                 let assetResources = PHAssetResource.assetResources(for: livePhotos)
-                var videoResources: PHAssetResource?
                 assetResources.forEach { (resource) in
                     if resource.type == .pairedVideo {
                         PHAssetResourceManager.default().writeData(for: resource, toFile: localURL, options: nil) { (error) in
@@ -195,13 +195,7 @@ public struct TLPHAsset {
         } else {
             writeURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent("\(fileName)")
         }
-        if (writeURL?.pathExtension.uppercased() == "HEIC" || writeURL?.pathExtension.uppercased() == "HEIF") && convertLivePhotosToJPG {
-            if let fileName2 = writeURL?.deletingPathExtension().lastPathComponent {
-                writeURL?.deleteLastPathComponent()
-                writeURL?.appendPathComponent("\(fileName2).jpg")
-            }
-        }
-        guard let localURL = writeURL,let mimetype = MIMEType(writeURL) else { return nil }
+        guard var localURL = writeURL,var mimetype = MIMEType(writeURL) else { return nil }
         if type == .pairedVideo {
             return tempCopyLivePhotos(phAsset: phAsset,
                                       livePhotoRequestOptions: livePhotoRequestOptions,
@@ -253,6 +247,12 @@ public struct TLPHAsset {
                 do {
                     var data = data
                     let needConvertLivePhotoToJPG = phAsset.mediaSubtypes.contains(.photoLive) == true && convertLivePhotosToJPG == true
+                    if needConvertLivePhotoToJPG {
+                        let name = localURL.deletingPathExtension().lastPathComponent
+                        localURL.deleteLastPathComponent()
+                        localURL.appendPathComponent("\(name).jpg")
+                        mimetype = "image/jpeg"
+                    }
                     if needConvertLivePhotoToJPG, let imgData = data, let rawImage = UIImage(data: imgData)?.upOrientationImage() {
                         data = rawImage.jpegData(compressionQuality: 1)
                     }
