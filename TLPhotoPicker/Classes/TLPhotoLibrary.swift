@@ -214,7 +214,7 @@ extension TLPhotoLibrary {
                 let collection = fetchCollection.firstObject,
                 result.contains(where: { $0.localIdentifier == collection.localIdentifier }) == false
             {
-                var photoAssets = PHAsset.fetchAssets(in: collection, options: options)
+                let photoAssets = PHAsset.fetchAssets(in: collection, options: options)
                 
                 photoAssets.enumerateObjects{(object: AnyObject!,
                     count: Int,
@@ -224,7 +224,7 @@ extension TLPhotoLibrary {
                         let asset = object as! PHAsset
                         if asset.burstIdentifier != nil {
 
-                            var fetchBurstResult = PHAsset.fetchAssets(withBurstIdentifier: asset.burstIdentifier!, options: options)
+                            let fetchBurstResult = PHAsset.fetchAssets(withBurstIdentifier: asset.burstIdentifier!, options: options)
                             
                             fetchBurstResult.enumerateObjects{(object1: AnyObject!,
                                 count1: Int,
